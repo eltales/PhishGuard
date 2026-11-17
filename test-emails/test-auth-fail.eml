@@ -1,0 +1,13 @@
+From: Example IT <it@example.com>
+To: Alex Morgan <alex.morgan@example.com>
+Subject: Account security check
+Date: Wed, 10 Jun 2026 09:00:00 +0200
+Message-ID: <phishguard-fixture-auth-fail@example.com>
+Authentication-Results: mx.example.com; spf=fail smtp.mailfrom=bounce@relay.test; dkim=fail header.d=example.com; dmarc=fail header.from=example.com
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html lang="en"><body>
+<p>PhishGuard authentication test. Review the SPF, DKIM and DMARC results.</p>
+</body></html>

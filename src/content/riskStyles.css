@@ -1,0 +1,230 @@
+/* PhishGuard risk styles injected into message view */
+
+/* Transparent center keeps the message body fully readable (works on light
+   and dark themes); only the edges carry the warning color. */
+.pg-risk-medium {
+  background-image:
+    radial-gradient(ellipse at center, rgba(255,204,0,0) 0%, rgba(255,204,0,0) 42%, rgba(255,193,7,0.40) 100%) !important;
+  background-attachment: fixed !important;
+}
+
+.pg-risk-high,
+.pg-risk-critical {
+  background-image:
+    radial-gradient(ellipse at center, rgba(220,38,38,0) 0%, rgba(220,38,38,0) 42%, rgba(220,38,38,0.48) 100%) !important;
+  background-attachment: fixed !important;
+}
+
+#pg-banner {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0 0 8px 0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border-left: 4px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#pg-banner.pg-banner-medium {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #78350f;
+}
+
+#pg-banner.pg-banner-high,
+#pg-banner.pg-banner-critical {
+  background: #fff1f2;
+  border-color: #dc2626;
+  color: #7f1d1d;
+}
+
+.pg-banner-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.pg-banner-msg {
+  font-size: 12px;
+}
+
+.pg-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.pg-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+}
+
+.pg-btn-danger {
+  background: #dc2626;
+  border-color: #b91c1c;
+  color: #fff;
+}
+
+.pg-btn-neutral {
+  background: #fff;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.pg-btn-safe {
+  background: #fff;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+/* Link warning modal */
+#pg-link-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#pg-link-modal {
+  background: #fff;
+  border-radius: 10px;
+  padding: 24px 28px;
+  max-width: 460px;
+  width: 90%;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.2);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #111;
+}
+
+#pg-link-modal h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  color: #dc2626;
+}
+
+#pg-link-modal .pg-modal-url {
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 6px 10px;
+  word-break: break-all;
+  font-size: 12px;
+  color: #1f2937;
+  margin: 8px 0;
+}
+
+#pg-link-modal .pg-modal-reason {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+#pg-link-modal .pg-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+#pg-link-modal .pg-btn-modal-no {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 7px 18px;
+  border-radius: 5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#pg-link-modal .pg-btn-modal-yes {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 7px 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* Details panel */
+#pg-details-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 999998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#pg-details-modal {
+  background: #fff;
+  border-radius: 10px;
+  padding: 24px 28px;
+  max-width: 540px;
+  width: 92%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.2);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #111;
+}
+
+#pg-details-modal h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 14px;
+}
+
+#pg-details-modal .pg-detail-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+#pg-details-modal .pg-detail-label {
+  font-weight: 600;
+  min-width: 100px;
+  color: #6b7280;
+}
+
+#pg-details-modal ul {
+  padding-left: 18px;
+  margin: 6px 0;
+}
+
+#pg-details-modal li {
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+#pg-details-modal .pg-domain-hint {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#pg-details-modal .pg-close-btn {
+  margin-top: 16px;
+  padding: 6px 16px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #111827 !important;
+}

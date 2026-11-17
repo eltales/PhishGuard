@@ -1,0 +1,13 @@
+From: Example Security Team <support@external-support.test>
+To: Alex Morgan <alex.morgan@example.com>
+Subject: New sign-in notification
+Date: Wed, 10 Jun 2026 10:15:00 +0200
+Message-ID: <phishguard-fixture-display-name-spoof@example.com>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html lang="en"><body>
+<p>PhishGuard display-name test. Login password and verification code are detection keywords.</p>
+<p><a href="https://example-verification.test/">Fixture link</a></p>
+</body></html>

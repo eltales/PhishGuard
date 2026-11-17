@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title data-i18n="detailsTitle">PhishGuard — Analysis details</title>
+  <link rel="stylesheet" href="details.css">
+</head>
+<body>
+  <div id="pg-popup-container">
+    <div id="pg-popup-header">
+      <span id="pg-popup-icon">⚡</span>
+      <h1>PhishGuard</h1>
+    </div>
+    <div id="pg-popup-body">
+      <div id="pg-no-analysis" style="display:none">
+        <p data-i18n="noAnalysis">No analysis available for this message.</p>
+      </div>
+      <div id="pg-not-configured" style="display:none">
+        <p data-i18n="notConfigured">PhishGuard is not configured.</p>
+        <p data-i18n="configure">Open settings to add your company email address.</p>
+        <p><a href="#" id="pg-open-options" data-i18n="openOptions">Open settings</a></p>
+      </div>
+      <div id="pg-analysis-result" style="display:none">
+        <div class="pg-row">
+          <span class="pg-label" data-i18n="risk">Risk level</span>
+          <span id="pg-risk-badge" class="pg-badge"></span>
+        </div>
+        <div class="pg-row">
+          <span class="pg-label" data-i18n="score">Score</span>
+          <span id="pg-score"></span>
+        </div>
+        <div id="pg-reasons-block">
+          <div class="pg-section-title" data-i18n="reasons">Reasons for flagging</div>
+          <ul id="pg-reasons-list"></ul>
+        </div>
+        <div id="pg-links-block" style="display:none">
+          <div class="pg-section-title" data-i18n="links">Suspicious links</div>
+          <ul id="pg-links-list"></ul>
+        </div>
+        <div id="pg-attachments-block" style="display:none">
+          <div class="pg-section-title" data-i18n="attachments">Suspicious attachments</div>
+          <ul id="pg-attachments-list"></ul>
+        </div>
+        <div id="pg-error-msg" class="pg-error" style="display:none"></div>
+        <div class="pg-actions">
+          <button id="pg-btn-report" class="pg-btn-primary" data-i18n="report">Report to administrator</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../i18n.js"></script>
+  <script src="details.js"></script>
+</body>
+</html>

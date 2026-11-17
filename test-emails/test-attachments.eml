@@ -1,0 +1,31 @@
+From: Billing Team <billing@vendor.test>
+To: Alex Morgan <alex.morgan@example.com>
+Subject: Invoice and payment confirmation
+Date: Wed, 10 Jun 2026 13:00:00 +0200
+Message-ID: <phishguard-fixture-attachments@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="PHISHGUARD-FIXTURE-ATTACHMENTS"
+
+--PHISHGUARD-FIXTURE-ATTACHMENTS
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+This is a PhishGuard test fixture. The two attached files contain plain text.
+
+--PHISHGUARD-FIXTURE-ATTACHMENTS
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="invoice.pdf.exe"
+MIME-Version: 1.0
+
+UEhJU0hHVUFSRCBURVNUIEZJWFRVUkUgLSBQTEFJTiBURVhUIFBMQUNFSE9MREVSDQo=
+
+--PHISHGUARD-FIXTURE-ATTACHMENTS
+Content-Type: application/x-msdownload
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="confirmation.jpg"
+MIME-Version: 1.0
+
+UEhJU0hHVUFSRCBURVNUIEZJWFRVUkUgLSBQTEFJTiBURVhUIFBMQUNFSE9MREVSDQo=
+
+--PHISHGUARD-FIXTURE-ATTACHMENTS--

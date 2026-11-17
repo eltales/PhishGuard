@@ -1,0 +1,13 @@
+From: Trusted Service <notifications@trusted-service.test>
+To: Alex Morgan <alex.morgan@example.com>
+Subject: Monthly account summary
+Date: Wed, 10 Jun 2026 08:00:00 +0200
+Message-ID: <phishguard-fixture-trusted-domain@example.com>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html lang="en"><body>
+<p>This is a routine account summary for the trusted sender control.</p>
+<p><a href="https://trusted-service.test/activity">Account activity</a></p>
+</body></html>

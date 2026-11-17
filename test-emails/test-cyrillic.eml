@@ -1,0 +1,13 @@
+From: Customer Support <support@vendor.example.com>
+To: Alex Morgan <alex.morgan@example.com>
+Subject: Account notice in a different writing system
+Date: Wed, 10 Jun 2026 15:00:00 +0200
+Message-ID: <phishguard-fixture-cyrillic@example.com>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html lang="en"><body>
+<p lang="ru">Тестовое сообщение для проверки алфавита. Это учебный пример.</p>
+<p><a href="http://203.0.113.45/status">Fixture link</a></p>
+</body></html>

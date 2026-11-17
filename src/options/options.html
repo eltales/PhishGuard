@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="optionsTitle">PhishGuard — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="pg-opts-container">
+    <header class="pg-opts-header">
+      <h1>⚡ PhishGuard for Thunderbird</h1>
+      <p class="pg-opts-subtitle" data-i18n="optionsSubtitle">Phishing protection settings</p>
+    </header>
+
+    <div id="pg-save-notice" class="pg-notice pg-notice-success" style="display:none"></div>
+    <div id="pg-error-notice" class="pg-notice pg-notice-error" style="display:none"></div>
+
+    <section class="pg-opts-section">
+      <label for="language" data-i18n="language">Language</label>
+      <select id="language">
+        <option value="en" lang="en">English</option>
+        <option value="pl" lang="pl">Polski</option>
+      </select>
+    </section>
+
+    <section class="pg-opts-section">
+      <h2 data-i18n="companyEmailTitle">Company email address</h2>
+      <label for="companyEmail" data-i18n="companyEmail">Your company email address</label>
+      <input type="email" id="companyEmail" placeholder="alex.morgan@example.com">
+      <p class="pg-hint" data-i18n="companyEmailHint"></p>
+      <div id="pg-detected-domain" class="pg-detected" style="display:none"></div>
+    </section>
+
+    <section class="pg-opts-section">
+      <h2 data-i18n="companyDomainsTitle">Company domains</h2>
+      <label for="companyDomains" data-i18n="companyDomains">Company domains (one per line)</label>
+      <textarea id="companyDomains" rows="4" placeholder="example.com&#10;example.pl&#10;example.eu"></textarea>
+      <p class="pg-hint" data-i18n="companyDomainsHint"></p>
+    </section>
+
+    <section class="pg-opts-section">
+      <h2 data-i18n="adminTitle">Administrator / IT security</h2>
+      <label for="adminReportEmail" data-i18n="adminEmail">Administrator email address</label>
+      <input type="email" id="adminReportEmail" placeholder="security@example.com">
+      <p class="pg-hint" data-i18n="adminEmailHint"></p>
+    </section>
+
+    <section class="pg-opts-section">
+      <h2 data-i18n="trustedDomainsTitle">Trusted domains</h2>
+      <label for="trustedDomains" data-i18n="trustedDomains">Trusted domains (one per line)</label>
+      <textarea id="trustedDomains" rows="4" placeholder="microsoft.com&#10;google.com&#10;apple.com"></textarea>
+      <p class="pg-hint" data-i18n="trustedDomainsHint"></p>
+    </section>
+
+    <section class="pg-opts-section">
+      <h2 data-i18n="linkSettings">Link warnings</h2>
+      <label class="pg-checkbox-label">
+        <input type="checkbox" id="warnOnTaggedEmail">
+        <span data-i18n="warnTagged"></span>
+      </label>
+      <label class="pg-checkbox-label">
+        <input type="checkbox" id="warnOnSuspiciousLink">
+        <span data-i18n="warnSuspicious"></span>
+      </label>
+    </section>
+
+    <section class="pg-opts-section">
+      <h2 data-i18n="reportSettings">Reporting to the administrator</h2>
+      <label class="pg-checkbox-label">
+        <input type="checkbox" id="reportButtonEnabled">
+        <span data-i18n="reportButtonSetting"></span>
+      </label>
+      <p class="pg-hint" data-i18n="reportButtonHint"></p>
+    </section>
+
+    <div class="pg-opts-footer">
+      <button id="pg-save-btn" class="pg-btn-save" data-i18n="save">Save settings</button>
+    </div>
+  </div>
+  <script src="../i18n.js"></script>
+  <script src="../core/domainSimilarity.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

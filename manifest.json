@@ -1,0 +1,62 @@
+{
+  "manifest_version": 3,
+  "name": "PhishGuard for Thunderbird",
+  "description": "Anti-phishing assistant for Thunderbird with domain lookalike detection and admin reporting.",
+  "version": "1.0.5",
+  "author": "PhishGuard",
+
+  "permissions": [
+    "messagesRead",
+    "messagesModify",
+    "storage",
+    "compose",
+    "tabs",
+    "activeTab",
+    "accountsRead",
+    "scripting"
+  ],
+
+  "background": {
+    "scripts": [
+      "src/i18n.js",
+      "src/core/domainSimilarity.js",
+      "src/core/urlAnalyzer.js",
+      "src/core/headerAnalyzer.js",
+      "src/core/attachmentAnalyzer.js",
+      "src/core/riskScoring.js",
+      "src/background/settingsService.js",
+      "src/background/messageAnalyzer.js",
+      "src/background/reportService.js",
+      "src/background/background.js"
+    ]
+  },
+
+  "action": {
+    "allowed_spaces": ["mail"],
+    "default_title": "Report phishing",
+    "default_icon": {
+      "16": "src/assets/icon-16.png",
+      "32": "src/assets/icon-32.png"
+    },
+    "default_popup": "src/popup/details.html"
+  },
+
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": false
+  },
+
+  "icons": {
+    "16": "src/assets/icon-16.png",
+    "32": "src/assets/icon-32.png",
+    "64": "src/assets/icon-64.png",
+    "128": "src/assets/icon-128.png"
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "phishguard@thunderbird",
+      "strict_min_version": "128.0"
+    }
+  }
+}

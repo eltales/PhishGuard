@@ -1,0 +1,14 @@
+From: Billing Support <billing@vendor.test>
+Reply-To: billing@external-support.test
+To: Alex Morgan <alex.morgan@example.com>
+Subject: Urgent: June invoice notice
+Date: Wed, 10 Jun 2026 11:30:00 +0200
+Message-ID: <phishguard-fixture-medium-risk@example.com>
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html lang="en"><body>
+<p>Test fixture for a Reply-To mismatch and an urgent subject.</p>
+<p><a href="https://vendor.test/invoices">Invoice information</a></p>
+</body></html>

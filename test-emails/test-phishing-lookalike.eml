@@ -1,0 +1,40 @@
+From: Security Team <security@exarnple.test>
+Reply-To: support@external-support.test
+To: Alex Morgan <alex.morgan@example.com>
+Subject: Urgent: password reset notice
+Date: Wed, 10 Jun 2026 09:14:00 +0200
+Message-ID: <phishguard-fixture-phishing-lookalike@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="PHISHGUARD-FIXTURE-PHISHING-LOOKALIKE"
+
+--PHISHGUARD-FIXTURE-PHISHING-LOOKALIKE
+Content-Type: multipart/alternative; boundary="PHISHGUARD-ALTERNATIVE-PHISHING-LOOKALIKE"
+
+--PHISHGUARD-ALTERNATIVE-PHISHING-LOOKALIKE
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+PhishGuard fixture for a company-domain lookalike and an attached macro-document placeholder.
+
+--PHISHGUARD-ALTERNATIVE-PHISHING-LOOKALIKE
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html lang="en"><body>
+<p>PhishGuard lookalike-domain and link mismatch test.</p>
+<p><a href="https://example-login.test/session">https://example.com/login</a></p>
+<p><a href="http://203.0.113.45/status">Fixture IP link</a></p>
+</body></html>
+
+--PHISHGUARD-ALTERNATIVE-PHISHING-LOOKALIKE--
+
+--PHISHGUARD-FIXTURE-PHISHING-LOOKALIKE
+Content-Type: application/vnd.ms-word.document.macroEnabled.12
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="invoice.docm"
+MIME-Version: 1.0
+
+UEhJU0hHVUFSRCBURVNUIEZJWFRVUkUgLSBQTEFJTiBURVhUIFBMQUNFSE9MREVSDQo=
+
+--PHISHGUARD-FIXTURE-PHISHING-LOOKALIKE--
