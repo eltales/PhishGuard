@@ -197,6 +197,221 @@ const EXPECT = {
     ok ? pass++ : fail++;
   }
 
+  const regressionCases = [
+    {
+      name: "trusted Atlassian subdomains and repeated tracking links",
+      sender: "updates@po.atlassian.com",
+      body: "Shipping update. Summarize outstanding tasks and blockers for this week.",
+      links: Array.from({ length: 12 }, (_, i) => ({
+        href: `https://track.atlassian.com/tracking/${i}`, text: "Read the update",
+      })),
+      trustedDomains: ["atlassian.com"], max: "low",
+    },
+    {
+      name: "company sender with a large signature",
+      sender: "manager@example.com", body: "Password policy expires this week.",
+      links: Array.from({ length: 12 }, (_, i) => ({
+        href: `https://intranet.example.com/page/${i}`, text: "Documentation",
+      })),
+      max: "low",
+    },
+    {
+      name: "internal URL under the configured company domain",
+      sender: "manager@example.com", body: "Shipping package updates.",
+      companyDomains: ["example.com", "example.lan"],
+      links: [{ href: "http://nuget.example.lan:8080/", text: "http://nuget.example.lan:8080/" }],
+      max: "low",
+    },
+    {
+      name: "link count alone does not raise the score",
+      sender: "news@vendor.test", body: "Monthly update.",
+      links: Array.from({ length: 12 }, (_, i) => ({ href: `https://vendor.test/${i}`, text: "Read" })),
+      exactScore: 0, max: "low",
+    },
+    {
+      name: "same-host repeated indicators are scored once",
+      sender: "news@vendor.test", body: "Monthly update.",
+      links: Array.from({ length: 12 }, (_, i) => ({ href: `http://192.0.2.1/${i}`, text: "Read" })),
+      exactScore: 25,
+    },
+    {
+      name: "trusted sibling tracking must warn when displayed and actual hosts differ",
+      sender: "updates@id.atlassian.com", body: "Your profile update.",
+      trustedDomains: ["atlassian.com"],
+      links: [{ href: "https://track.atlassian.com/tracking/test", text: "https://id.atlassian.com/manage-profile" }],
+      min: "medium", restricted: true,
+    },
+    {
+      name: "unrelated destination still flags misleading text",
+      sender: "updates@id.atlassian.com", body: "Your profile update.",
+      trustedDomains: ["atlassian.com"],
+      links: [{ href: "https://attacker.test/", text: "https://id.atlassian.com/manage-profile" }],
+      min: "medium", restricted: true,
+    },
+    {
+      name: "trusted company sender cannot hide authentication failures",
+      sender: "manager@example.com", body: "Monthly update.",
+      auth: "mx.example; spf=fail; dkim=fail; dmarc=fail", min: "high",
+    },
+    {
+      name: "trusted company sender cannot hide dangerous attachments",
+      sender: "manager@example.com", body: "Monthly update.",
+      attachment: "invoice.pdf.exe", min: "medium", restricted: true,
+    },
+    {
+      name: "compromised company sender with a hidden external destination",
+      sender: "manager@example.com", body: "Monthly update.",
+      links: [{ href: "https://attacker.test/", text: "https://portal.example.com/" }],
+      min: "medium", restricted: true,
+    },
+    {
+      name: "compromised company sender with a lookalike link",
+      sender: "manager@example.com", body: "Monthly update.",
+      links: [{ href: "https://exarnple.com/", text: "View document" }],
+      min: "medium", restricted: true,
+    },
+    {
+      name: "trusted sender address cannot hide double extensions",
+      sender: "contact@vendor.test", body: "Monthly update.",
+      knownSenders: ["contact@vendor.test"],
+      attachment: "invoice.pdf.exe", min: "medium", restricted: true,
+    },
+    {
+      name: "trust a full sender address",
+      sender: "contact@vendor.test", body: "Password reset expires soon.",
+      knownSenders: ["contact@vendor.test"], max: "low",
+    },
+    {
+      name: "a trusted sender does not trust the entire domain",
+      sender: "other@vendor.test", body: "Password reset expires soon.",
+      knownSenders: ["contact@vendor.test"], min: "medium",
+    },
+    {
+      name: "a different Atlassian TLD is not automatically trusted",
+      sender: "updates@po.atlassian.net", body: "Monthly update.",
+      companyDomains: ["atlassian.com"], trustedDomains: ["atlassian.com"],
+      links: Array.from({ length: 12 }, (_, i) => ({ href: `https://track.atlassian.com/${i}`, text: "Read" })),
+      exactScore: 30, restricted: true, max: "medium",
+    },
+    {
+      name: "trusted address still cannot hide a lookalike",
+      sender: "contact@exarnple.com", body: "Password reset expires soon.",
+      knownSenders: ["contact@exarnple.com"], min: "medium", restricted: true,
+    },
+    {
+      name: "a trusted root never trusts a deceptive suffix",
+      sender: "contact@atlassian.com.attacker.test", body: "Password reset expires soon.",
+      trustedDomains: ["atlassian.com"], min: "medium",
+    },
+  ];
+  for (const test of regressionCases) {
+    current = {
+      full: {
+        headers: {
+          from: [test.sender], subject: ["Status"],
+          "authentication-results": [test.auth || ""],
+        },
+        parts: [{ contentType: "text/html", body: `<p>${test.body}</p>` +
+          (test.links || []).map(link => `<a href="${link.href}">${link.text}</a>`).join("") }],
+      },
+      attachments: test.attachment ? [{ name: test.attachment }] : [],
+    };
+    const result = await sandbox.analyzeMessage(1, {
+      ...settings,
+      companyDomains: test.companyDomains || settings.companyDomains,
+      trustedDomains: test.trustedDomains || [],
+      knownSenders: test.knownSenders || [],
+    });
+    const ok = (!test.min || LEVEL[result.risk] >= LEVEL[test.min]) &&
+      (!test.max || LEVEL[result.risk] <= LEVEL[test.max]) &&
+      (test.exactScore === undefined || result.score === test.exactScore) &&
+      (test.restricted === undefined || result.details.trustRestricted === test.restricted);
+    console.log(`${ok ? "PASS" : "FAIL"}  Regression: ${test.name} (${result.risk}, ${result.score})`);
+    if (!ok) console.log("        reasons:", result.reasons.join(", "));
+    ok ? pass++ : fail++;
+  }
+
+  const check = (name, ok) => {
+    console.log(`${ok ? "PASS" : "FAIL"}  Regression: ${name}`);
+    ok ? pass++ : fail++;
+  };
+  check("credential keywords match whole words",
+    !sandbox.PGHeaderAnalyzer.detectCredentialRequest("Shipping grouping pinning") &&
+    sandbox.PGHeaderAnalyzer.detectCredentialRequest("Enter your PIN.") &&
+    sandbox.PGHeaderAnalyzer.detectCredentialRequest("Podaj hasło"));
+  check("a genuine subdomain is not a TLD swap",
+    sandbox.PGDomainSimilarity.checkSimilarity("id.atlassian.com", "atlassian.com").score === 0);
+
+  // Run the actual background message handler and storage listeners.
+  const stored = { phishguardSettings: { ...settings, trustedDomains: [] } };
+  let onStorageChanged;
+  let storageUpdate = Promise.resolve();
+  sandbox.browser.storage = {
+    local: {
+      async get(key) { return { [key]: stored[key] }; },
+      async set(values) {
+        const changes = Object.fromEntries(Object.entries(values).map(([key, newValue]) =>
+          [key, { oldValue: stored[key], newValue }]));
+        Object.assign(stored, values);
+        storageUpdate = onStorageChanged(changes, "local");
+      },
+    },
+    onChanged: { addListener(listener) { onStorageChanged = listener; } },
+  };
+  sandbox.browser.scripting = { messageDisplay: {
+    getRegisteredScripts: async () => [{ id: "pg-display-script", js: ["src/i18n.js"] }],
+    registerScripts: async () => {},
+  } };
+  sandbox.browser.messageDisplay = { onMessagesDisplayed: { addListener() {} } };
+  sandbox.browser.tabs = { query: async () => [], sendMessage: async () => {} };
+  sandbox.browser.runtime = { onMessage: { addListener(listener) { this.handle = listener; } } };
+  for (const file of ["src/i18n.js", "src/background/settingsService.js", "src/background/background.js"]) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, file), "utf8"), sandbox, { filename: file });
+  }
+  const dispatch = msg => sandbox.browser.runtime.onMessage.handle(msg, {});
+  current = { full: { headers: { from: ["Contact <contact@vendor.test>"], subject: ["Password reset expires"] }, parts: [] }, attachments: [] };
+  const beforeTrust = await dispatch({ type: "pg_get_analysis", messageId: 20 });
+  const trust = await dispatch({ type: "pg_mark_safe", messageId: 20 });
+  await storageUpdate;
+  const afterTrust = await dispatch({ type: "pg_get_analysis", messageId: 20 });
+  check("trust action persists the full address and refreshes cached analysis",
+    beforeTrust.result.risk === "medium" && trust.ok &&
+    stored.phishguardSettings.knownSenders.includes("contact@vendor.test") &&
+    afterTrust.result.risk === "low" && !stored.pgSafe_20);
+  vm.runInContext("analysisCache.clear()", sandbox);
+  const reopened = await dispatch({ type: "pg_get_analysis", messageId: 21 });
+  check("sender trust survives a cache reset and a new message ID", reopened.result.risk === "low");
+  const revoked = { ...stored.phishguardSettings, knownSenders: [] };
+  await sandbox.browser.storage.local.set({ phishguardSettings: revoked });
+  await storageUpdate;
+  const afterRevoke = await dispatch({ type: "pg_get_analysis", messageId: 20 });
+  check("removing sender trust restores warnings", afterRevoke.result.risk === "medium");
+  current.attachments = [{ name: "document.pdf.exe" }];
+  const blocked = await dispatch({ type: "pg_mark_safe", messageId: 22 });
+  check("trust action rejects dangerous attachments", Boolean(blocked.error) && !stored.phishguardSettings.knownSenders.length);
+  current.attachments = [];
+  const concurrent = await Promise.all([
+    dispatch({ type: "pg_mark_safe", messageId: 23 }),
+    dispatch({ type: "pg_mark_safe", messageId: 24 }),
+  ]);
+  await storageUpdate;
+  check("repeated trust actions do not duplicate entries",
+    concurrent.every(response => response.ok) && stored.phishguardSettings.knownSenders.length === 1);
+
+  const getFull = sandbox.browser.messages.getFull;
+  const snapshot = current.full;
+  let finishRead;
+  sandbox.browser.messages.getFull = () => new Promise(resolve => { finishRead = resolve; });
+  const stale = dispatch({ type: "pg_get_analysis", messageId: 30 });
+  await new Promise(resolve => setImmediate(resolve));
+  await sandbox.browser.storage.local.set({ phishguardSettings: revoked });
+  await storageUpdate;
+  finishRead(snapshot);
+  await stale;
+  sandbox.browser.messages.getFull = getFull;
+  const refreshed = await dispatch({ type: "pg_get_analysis", messageId: 30 });
+  check("an in-flight analysis cannot restore an outdated trust decision", refreshed.result.risk === "medium");
+
   console.log(`\n${pass}/${pass + fail} testów przeszło` + (fail ? ` — ${fail} BŁĄD` : " — OK"));
   process.exit(fail ? 1 : 0);
 })();

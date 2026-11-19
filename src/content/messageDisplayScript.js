@@ -8,6 +8,14 @@
   // CSS is injected by the background script (scripting.messageDisplay /
   // scripting.insertCSS).
 
+  function element(tag, { id, className } = {}, ...children) {
+    const node = document.createElement(tag);
+    if (id) node.id = id;
+    if (className) node.className = className;
+    node.append(...children);
+    return node;
+  }
+
   function removeBanner() {
     const old = document.getElementById("pg-banner");
     if (old) old.remove();
@@ -24,32 +32,31 @@
 
   function showBanner(result, messageId, settings) {
     removeBanner();
-    const { risk, score, reasons } = result;
-
-    const banner = document.createElement("div");
-    banner.id = "pg-banner";
-    banner.className = `pg-banner-${risk}`;
+    const { risk } = result;
 
     const icons = { medium: "⚠️", high: "🚨", critical: "🚨" };
-    const reportBtnHtml = settings && settings.reportButtonEnabled === false
-      ? ""
-      : `<button class="pg-btn pg-btn-danger" id="pg-btn-report">${t("report")}</button>`;
+    const actions = element("div", { className: "pg-banner-actions" });
+    const reportButton = settings?.reportButtonEnabled === false ? null
+      : element("button", { id: "pg-btn-report", className: "pg-btn pg-btn-danger" }, t("report"));
+    if (reportButton) actions.append(reportButton);
+    const detailsButton = element("button", { id: "pg-btn-details", className: "pg-btn pg-btn-neutral" }, t("details"));
+    actions.append(detailsButton);
+    const safeButton = risk !== "critical" && !result.details?.trustRestricted
+      ? element("button", { id: "pg-btn-safe", className: "pg-btn pg-btn-safe" }, t("markSafe"))
+      : null;
+    if (safeButton) actions.append(safeButton);
 
-    banner.innerHTML = `
-      <div class="pg-banner-title">${icons[risk] || "⚠️"} ${t(`warning_${risk}`)}</div>
-      <div class="pg-banner-msg">${t(`advice_${risk}`)}</div>
-      <div class="pg-banner-actions">
-        ${reportBtnHtml}
-        <button class="pg-btn pg-btn-neutral" id="pg-btn-details">${t("details")}</button>
-        ${risk !== "critical" && !result.details?.trustRestricted ? `<button class="pg-btn pg-btn-safe" id="pg-btn-safe">${t("markSafe")}</button>` : ""}
-      </div>
-    `;
+    const banner = element("div", { id: "pg-banner", className: `pg-banner-${risk}` },
+      element("div", { className: "pg-banner-title" }, `${icons[risk] || "⚠️"} ${t(`warning_${risk}`)}`),
+      element("div", { className: "pg-banner-msg" }, t(`advice_${risk}`)),
+      actions
+    );
 
     // Insert as first child of body (before message content)
     const target = document.body || document.documentElement;
     target.insertBefore(banner, target.firstChild);
 
-    document.getElementById("pg-btn-report")?.addEventListener("click", (e) => {
+    reportButton?.addEventListener("click", (e) => {
       const btn = e.currentTarget;
       btn.disabled = true;
       btn.textContent = t("preparing");
@@ -67,18 +74,17 @@
         .finally(() => { btn.disabled = false; });
     });
 
-    document.getElementById("pg-btn-details")?.addEventListener("click", () => {
-      showDetailsModal(result, messageId);
+    detailsButton.addEventListener("click", () => {
+      showDetailsModal(result);
     });
 
-    document.getElementById("pg-btn-safe")?.addEventListener("click", async (event) => {
+    safeButton?.addEventListener("click", async (event) => {
       const button = event.currentTarget;
       button.disabled = true;
       try {
         const response = await browser.runtime.sendMessage({ type: "pg_mark_safe", messageId });
         if (!response?.ok) throw new Error(response?.error || t("markSafeFailed"));
-        removeBanner();
-        applyBodyRisk("low");
+        requestAnalysis();
       } catch (error) {
         button.textContent = error.message;
         button.disabled = false;
@@ -93,64 +99,60 @@
     }
   }
 
-  function showDetailsModal(result, messageId) {
-    const existing = document.getElementById("pg-details-modal-overlay");
-    if (existing) existing.remove();
-
+  function showDetailsModal(result) {
+    document.getElementById("pg-details-modal-overlay")?.remove();
     const { risk, score, reasons, details } = result;
-    const riskLabel = t(risk);
-
-    const senderSim = details?.senderSimilarity;
-    let reasonsHtml = "<ul>" + reasons.map(r => {
-      let extra = "";
-      if ((r === "sender_lookalike_domain" || r === "tld_swap") && senderSim?.inputDomain) {
-        extra = ` <span class="pg-domain-hint">${escHtml(t("senderDomainHint", senderSim.inputDomain))}</span>`;
-      }
-      return `<li>✓ ${escHtml(t(r))}${extra}</li>`;
-    }).join("") + "</ul>";
-
-    let linksHtml = "";
-    if (details?.links?.length > 0) {
-      const suspicious = details.links.filter(l => (l.analysis && l.analysis.score > 0) || l.similarity);
-      if (suspicious.length > 0) {
-        linksHtml = `<div><strong>${t("links")}:</strong><ul>` +
-          suspicious.map((l, i) => {
-            const host = l.similarity?.inputDomain || linkHost(l.href);
-            const ocena = (l.analysis?.reasons || []).map(reason => t(reason));
-            if (l.similarity) ocena.push(t("link_domain_lookalike"));
-            const domainHint = host ? `<br><span class="pg-domain-hint">${escHtml(t("linkDomainHint", host))}</span>` : "";
-            return `<li>${i + 1}. ${t("linkText")}: ${escHtml(l.text || t("none"))}<br>URL: <code>${escHtml(l.href)}</code>${domainHint}<br>${t("reason")}: ${escHtml(ocena.join(", "))}</li>`;
-          }).join("") +
-          `</ul></div>`;
-      }
+    const modal = element("div", { id: "pg-details-modal" }, element("h2", {}, t("detailsTitle")));
+    const overlay = element("div", { id: "pg-details-modal-overlay" }, modal);
+    for (const [label, value] of [["risk", t(risk)], ["score", String(score)]]) {
+      modal.append(element("div", { className: "pg-detail-row" },
+        element("span", { className: "pg-detail-label" }, `${t(label)}:`),
+        element("span", {}, value)
+      ));
     }
 
-    let attachHtml = "";
-    if (details?.attachments?.length > 0) {
-      const suspicious = details.attachments.filter(a => a.risk !== "low");
-      if (suspicious.length > 0) {
-        attachHtml = `<div><strong>${t("attachments")}:</strong><ul>` +
-          suspicious.map(a => `<li>${escHtml(a.filename)} — ${escHtml(a.code ? t(a.code) : "")}</li>`).join("") +
-          `</ul></div>`;
+    const senderDomain = details?.senderSimilarity?.inputDomain;
+    const reasonItems = reasons.map(reason => {
+      const item = element("li", {}, `✓ ${t(reason)}`);
+      if ((reason === "sender_lookalike_domain" || reason === "tld_swap") && senderDomain) {
+        item.append(" ", element("span", { className: "pg-domain-hint" }, t("senderDomainHint", senderDomain)));
       }
+      return item;
+    });
+    modal.append(element("div", {}, element("strong", {}, `${t("reasons")}:`), element("ul", {}, ...reasonItems)));
+
+    const suspiciousLinks = (details?.links || []).filter(link => link.analysis?.score > 0 || link.similarity);
+    if (suspiciousLinks.length) {
+      const items = suspiciousLinks.map((link, index) => {
+        const host = link.similarity?.inputDomain || linkHost(link.href);
+        const linkReasons = (link.analysis?.reasons || []).map(reason => t(reason));
+        if (link.similarity) {
+          const onlyTldSwap = link.similarity.reasons.length === 1 && link.similarity.reasons[0] === "tld_swap";
+          linkReasons.push(t(onlyTldSwap ? "tld_swap" : "link_domain_lookalike"));
+        }
+        const item = element("li", {}, `${index + 1}. ${t("linkText")}: ${link.text || t("none")}`,
+          element("br"), "URL: ", element("code", {}, link.href)
+        );
+        if (host) item.append(element("br"), element("span", { className: "pg-domain-hint" }, t("linkDomainHint", host)));
+        item.append(element("br"), `${t("reason")}: ${linkReasons.join(", ")}`);
+        return item;
+      });
+      modal.append(element("div", {}, element("strong", {}, `${t("links")}:`), element("ul", {}, ...items)));
     }
 
-    const overlay = document.createElement("div");
-    overlay.id = "pg-details-modal-overlay";
-    overlay.innerHTML = `
-      <div id="pg-details-modal">
-        <h2>${t("detailsTitle")}</h2>
-        <div class="pg-detail-row"><span class="pg-detail-label">${t("risk")}:</span><span>${riskLabel}</span></div>
-        <div class="pg-detail-row"><span class="pg-detail-label">${t("score")}:</span><span>${score}</span></div>
-        <div><strong>${t("reasons")}:</strong>${reasonsHtml}</div>
-        ${linksHtml}
-        ${attachHtml}
-        <button class="pg-close-btn" id="pg-details-close">${t("close")}</button>
-      </div>
-    `;
+    const suspiciousAttachments = (details?.attachments || []).filter(attachment => attachment.risk !== "low");
+    if (suspiciousAttachments.length) {
+      const items = suspiciousAttachments.map(attachment =>
+        element("li", {}, `${attachment.filename} — ${attachment.code ? t(attachment.code) : ""}`)
+      );
+      modal.append(element("div", {}, element("strong", {}, `${t("attachments")}:`), element("ul", {}, ...items)));
+    }
+
+    const closeButton = element("button", { id: "pg-details-close", className: "pg-close-btn" }, t("close"));
+    modal.append(closeButton);
     document.body.appendChild(overlay);
     overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
-    document.getElementById("pg-details-close")?.addEventListener("click", () => overlay.remove());
+    closeButton.addEventListener("click", () => overlay.remove());
   }
 
   // Fire-and-forget message; the pane may already be gone.
@@ -158,10 +160,6 @@
     try {
       browser.runtime.sendMessage(message).catch(() => {});
     } catch (e) { /* context unloaded */ }
-  }
-
-  function escHtml(s) {
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
   function linkHost(href) {
@@ -179,29 +177,25 @@
 
     const reasonText = reasons.map(reason => t(reason)).join(", ") || t("tagged_email");
 
-    const overlay = document.createElement("div");
-    overlay.id = "pg-link-modal-overlay";
-    overlay.innerHTML = `
-      <div id="pg-link-modal">
-        <h2>${t("linkWarning")}</h2>
-        <p>${t("linkWarningBody")}</p>
-        <p><strong>${t("destination")}:</strong></p>
-        <div class="pg-modal-url">${escHtml(url)}</div>
-        <p class="pg-modal-reason"><strong>${t("reason")}:</strong> ${escHtml(reasonText)}</p>
-        <p>${t("openLinkQuestion")}</p>
-        <div class="pg-modal-actions">
-          <button class="pg-btn-modal-no" id="pg-modal-no">${t("cancel")}</button>
-          <button class="pg-btn-modal-yes" id="pg-modal-yes">${t("openLink")}</button>
-        </div>
-      </div>
-    `;
+    const cancelButton = element("button", { id: "pg-modal-no", className: "pg-btn-modal-no" }, t("cancel"));
+    const openButton = element("button", { id: "pg-modal-yes", className: "pg-btn-modal-yes" }, t("openLink"));
+    const modal = element("div", { id: "pg-link-modal" },
+      element("h2", {}, t("linkWarning")),
+      element("p", {}, t("linkWarningBody")),
+      element("p", {}, element("strong", {}, `${t("destination")}:`)),
+      element("div", { className: "pg-modal-url" }, url),
+      element("p", { className: "pg-modal-reason" }, element("strong", {}, `${t("reason")}:`), ` ${reasonText}`),
+      element("p", {}, t("openLinkQuestion")),
+      element("div", { className: "pg-modal-actions" }, cancelButton, openButton)
+    );
+    const overlay = element("div", { id: "pg-link-modal-overlay" }, modal);
     document.body.appendChild(overlay);
 
-    document.getElementById("pg-modal-no").addEventListener("click", () => {
+    cancelButton.addEventListener("click", () => {
       overlay.remove();
       onCancel && onCancel();
     });
-    document.getElementById("pg-modal-yes").addEventListener("click", () => {
+    openButton.addEventListener("click", () => {
       overlay.remove();
       onConfirm && onConfirm();
     });

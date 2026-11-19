@@ -63,6 +63,7 @@ async function init() {
   document.getElementById("companyDomains").value = (settings.companyDomains || []).join("\n");
   document.getElementById("adminReportEmail").value = settings.adminReportEmail || "";
   document.getElementById("trustedDomains").value = (settings.trustedDomains || []).join("\n");
+  document.getElementById("knownSenders").value = (settings.knownSenders || []).join("\n");
   document.getElementById("warnOnTaggedEmail").checked = settings.warnOnTaggedEmail !== false;
   document.getElementById("warnOnSuspiciousLink").checked = settings.warnOnSuspiciousLink !== false;
   document.getElementById("reportButtonEnabled").checked = settings.reportButtonEnabled !== false;
@@ -123,6 +124,22 @@ async function save() {
     .split("\n").map(d => d.trim().toLowerCase()).filter(Boolean);
 
   const previous = await loadSettings();
+  const knownSenders = document.getElementById("knownSenders").value
+    .split("\n").map(sender => sender.trim().toLowerCase()).filter(Boolean);
+  const previousSenders = new Set((previous.knownSenders || []).map(sender => sender.toLowerCase()));
+  const invalidSender = knownSenders.find(sender => !previousSenders.has(sender) && !isValidEmail(sender));
+  if (invalidSender) {
+    showNotice(t("invalidTrustedSender", invalidSender), "error");
+    return;
+  }
+  const blockedSender = knownSenders.find(sender => !previousSenders.has(sender) && (
+    PGDomainSimilarity.hasMixedScriptHomoglyphs(sender) ||
+    PGDomainSimilarity.checkAgainstAllCompanyDomains(extractDomain(sender), companyDomains).score > 0
+  ));
+  if (blockedSender) {
+    showNotice(t("blockedDomain", extractDomain(blockedSender)), "error");
+    return;
+  }
   const previouslyTrusted = new Set((previous.trustedDomains || []).map(domain => domain.toLowerCase()));
   const blockedDomain = trustedDomains.find(domain => !previouslyTrusted.has(domain) && (
     PGDomainSimilarity.hasMixedScriptHomoglyphs(domain) ||
@@ -143,6 +160,7 @@ async function save() {
     domainProfiles,
     adminReportEmail,
     trustedDomains,
+    knownSenders,
     warnOnTaggedEmail: document.getElementById("warnOnTaggedEmail").checked,
     warnOnSuspiciousLink: document.getElementById("warnOnSuspiciousLink").checked,
     reportButtonEnabled: document.getElementById("reportButtonEnabled").checked,

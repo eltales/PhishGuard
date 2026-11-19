@@ -1,7 +1,14 @@
 "use strict";
 
-function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function linkHost(href) { try { return new URL(href).hostname.replace(/^www\./, ""); } catch { return ""; } }
+
+function createDomainHint(text) {
+  const hint = document.createElement("span");
+  hint.textContent = text;
+  hint.style.color = "#2563eb";
+  hint.style.fontWeight = "600";
+  return hint;
+}
 
 async function getCurrentMessageId() {
   try {
@@ -67,10 +74,9 @@ async function init() {
   if (!visibleReasons.length) document.getElementById("pg-reasons-block").style.display = "none";
   visibleReasons.forEach(r => {
     const li = document.createElement("li");
+    li.textContent = "✓ " + t(r);
     if ((r === "sender_lookalike_domain" || r === "tld_swap") && senderSim?.inputDomain) {
-      li.innerHTML = `✓ ${esc(t(r))} <span style="color:#2563eb;font-weight:600">${esc(t("senderDomainHint", senderSim.inputDomain))}</span>`;
-    } else {
-      li.textContent = "✓ " + t(r);
+      li.append(" ", createDomainHint(t("senderDomainHint", senderSim.inputDomain)));
     }
     reasonsList.appendChild(li);
   });
@@ -83,14 +89,27 @@ async function init() {
       suspicious.forEach((l, i) => {
         const li = document.createElement("li");
         const host = (l.similarity && l.similarity.inputDomain) || linkHost(l.href);
-        const ocena = (l.analysis && l.analysis.reasons ? l.analysis.reasons.slice() : []);
-        if (l.similarity) ocena.push("link_domain_lookalike");
-        const domainHint = host
-          ? `<br><span style="color:#2563eb;font-size:11px;font-weight:600">${esc(t("linkDomainHint", host))}</span>`
-          : "";
-        li.innerHTML = `${i + 1}. <strong>${esc(l.text || t("none"))}</strong><br>
-          <code style="font-size:11px;word-break:break-all">${esc(l.href)}</code>${domainHint}<br>
-          <em style="font-size:11px">${esc(ocena.map(reason => t(reason)).join(", "))}</em>`;
+        const linkReasons = (l.analysis?.reasons || []).map(reason => t(reason));
+        if (l.similarity) {
+          const onlyTldSwap = l.similarity.reasons.length === 1 && l.similarity.reasons[0] === "tld_swap";
+          linkReasons.push(t(onlyTldSwap ? "tld_swap" : "link_domain_lookalike"));
+        }
+        const linkText = document.createElement("strong");
+        linkText.textContent = l.text || t("none");
+        const url = document.createElement("code");
+        url.textContent = l.href;
+        url.style.fontSize = "11px";
+        url.style.wordBreak = "break-all";
+        li.append(`${i + 1}. `, linkText, document.createElement("br"), url);
+        if (host) {
+          const hint = createDomainHint(t("linkDomainHint", host));
+          hint.style.fontSize = "11px";
+          li.append(document.createElement("br"), hint);
+        }
+        const explanation = document.createElement("em");
+        explanation.textContent = linkReasons.join(", ");
+        explanation.style.fontSize = "11px";
+        li.append(document.createElement("br"), explanation);
         list.appendChild(li);
       });
     }

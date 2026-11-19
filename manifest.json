@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PhishGuard for Thunderbird",
   "description": "Anti-phishing assistant for Thunderbird with domain lookalike detection and admin reporting.",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "author": "PhishGuard",
 
   "permissions": [

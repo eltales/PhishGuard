@@ -73,17 +73,20 @@ applyReportButtonState();
 
 // Share analyses already in progress, including requests from the toolbar.
 const analysisInFlight = new Map();
+let settingsRevision = 0;
+let senderTrustUpdate = Promise.resolve();
 
 async function getOrComputeAnalysis(messageId, settings) {
   const cached = analysisCache.get(messageId);
   if (cached) return cached;
   const pending = analysisInFlight.get(messageId);
   if (pending) return pending;
+  const revision = settingsRevision;
   const run = (async () => {
     settings = settings || await getSettings();
     if (!settings.companyDomains || settings.companyDomains.length === 0) return null;
     const result = await analyzeMessage(messageId, settings);
-    if (result) analysisCache.set(messageId, result);
+    if (result && revision === settingsRevision) analysisCache.set(messageId, result);
     console.log(PG_LOG, "Analiza wiadomości", messageId, "->", result ? `${result.risk} (${result.score})` : "brak");
     return result;
   })();
@@ -91,7 +94,7 @@ async function getOrComputeAnalysis(messageId, settings) {
   try {
     return await run;
   } finally {
-    analysisInFlight.delete(messageId);
+    if (analysisInFlight.get(messageId) === run) analysisInFlight.delete(messageId);
   }
 }
 
@@ -174,14 +177,21 @@ async function handleRuntimeMessage(msg) {
   }
 
   if (msg.type === "pg_mark_safe") {
-    const settings = await getSettings();
-    const result = await analyzeMessage(msg.messageId, settings);
-    if (!result || result.details.trustRestricted || result.risk === "critical") {
-      return { error: PGI18n.forLanguage(settings.language)("trustRestricted") };
-    }
-    const key = `pgSafe_${msg.messageId}`;
-    await browser.storage.local.set({ [key]: { safe: true, at: new Date().toISOString() } });
-    return { ok: true };
+    const update = senderTrustUpdate.then(async () => {
+      const settings = await getSettings();
+      const result = await analyzeMessage(msg.messageId, settings);
+      const sender = PGHeaderAnalyzer.parseAddress(result?.details.headers.from).email?.toLowerCase();
+      if (!sender || result.details.trustRestricted || result.risk === "critical" ||
+          result.reasons.some(reason => /^auth_.*_fail$/.test(reason))) {
+        return { error: PGI18n.forLanguage(settings.language)("trustRestricted") };
+      }
+      const knownSenders = [...new Set([...(settings.knownSenders || []), sender])];
+      await saveSettings({ ...settings, knownSenders });
+      analysisCache.delete(msg.messageId);
+      return { ok: true };
+    });
+    senderTrustUpdate = update.catch(() => {});
+    return update;
   }
 
   if (msg.type === "pg_open_link") {
@@ -211,7 +221,9 @@ async function handleRuntimeMessage(msg) {
 // manual reload.
 browser.storage.onChanged.addListener(async (changes, area) => {
   if (area !== "local" || !changes.phishguardSettings) return;
+  settingsRevision++;
   analysisCache.clear();
+  analysisInFlight.clear();
   await applyReportButtonState();
   try {
     const tabs = await browser.tabs.query({});

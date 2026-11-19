@@ -69,7 +69,10 @@ function detectCredentialRequest(text) {
     "numer konta", "numer pesel", "pesel", "pin", "social security", "login i hasło",
   ];
   const lower = (text || "").toLowerCase();
-  return keywords.some(kw => lower.includes(kw));
+  return keywords.some(keyword => {
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`, "u").test(lower);
+  });
 }
 
 // (1) SPF / DKIM / DMARC results from the Authentication-Results header(s).

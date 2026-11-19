@@ -9,6 +9,7 @@ async function analyzeMessage(messageId, settings) {
   const knownSenders = settings.knownSenders || [];
 
   let score = 0;
+  let contentScore = 0;
   const reasons = [];
   const details = { links: [], attachments: [], headers: {} };
 
@@ -75,6 +76,7 @@ async function analyzeMessage(messageId, settings) {
   // Urgency in subject
   if (PGHeaderAnalyzer.detectUrgencyInText(subject)) {
     score += 10;
+    contentScore += 10;
     reasons.push("urgency_subject");
   }
 
@@ -89,6 +91,7 @@ async function analyzeMessage(messageId, settings) {
   if (allText && PGHeaderAnalyzer.detectUrgencyInText(allText)) {
     if (!reasons.includes("urgency_subject")) {
       score += 10;
+      contentScore += 10;
       reasons.push("urgency_body");
     }
   }
@@ -96,6 +99,7 @@ async function analyzeMessage(messageId, settings) {
   // (15) Requests for credentials / sensitive data.
   if (PGHeaderAnalyzer.detectCredentialRequest(subject + " " + allText)) {
     score += 20;
+    contentScore += 20;
     reasons.push("credential_request");
   }
 
@@ -116,20 +120,27 @@ async function analyzeMessage(messageId, settings) {
   const links = extractLinksFromParts(full);
   details.links = links;
 
-  let linkCount = 0;
+  // Use the highest URL score per host, even when a signature or newsletter
+  // repeats the same destination across many tracking URLs.
+  const scoredLinks = new Map();
+  const scoredSimilarDomains = new Set();
   for (const link of links) {
     const urlResult = PGUrlAnalyzer.analyzeUrl(link.href, link.text);
     link.analysis = urlResult;
-    score += urlResult.score;
+    const linkDomain = PGUrlAnalyzer.extractDomainFromUrl(link.href);
+    const previousScore = scoredLinks.get(linkDomain) || 0;
+    const domainScore = Math.max(previousScore, urlResult.score);
+    score += domainScore - previousScore;
+    scoredLinks.set(linkDomain, domainScore);
     reasons.push(...urlResult.reasons.filter(r => !reasons.includes(r)));
-    linkCount++;
 
     if (companyDomains.length > 0) {
-      const linkDomain = PGUrlAnalyzer.extractDomainFromUrl(link.href);
       if (linkDomain) {
         const linkSim = PGDomainSimilarity.checkAgainstAllCompanyDomains(linkDomain, companyDomains);
         if (linkSim && linkSim.score > 0) {
           link.similarity = linkSim;
+          if (scoredSimilarDomains.has(linkDomain)) continue;
+          scoredSimilarDomains.add(linkDomain);
           if (isOnlyTldSwap(linkSim)) {
             score += 10;
             if (!reasons.includes("tld_swap")) reasons.push("tld_swap");
@@ -140,11 +151,6 @@ async function analyzeMessage(messageId, settings) {
         }
       }
     }
-  }
-
-  if (linkCount > 5) {
-    score += 5;
-    reasons.push("many_links");
   }
 
   // Attachments — listAttachments exposes name + contentType (getFull does not
@@ -173,18 +179,25 @@ async function analyzeMessage(messageId, settings) {
   details.trustRestricted = Boolean(
     hasHomoglyphs || details.senderSimilarity || dnReasons.length ||
     details.links.some(link => link.similarity) ||
+    reasons.includes("link_text_href_mismatch") ||
     details.attachments.some(attachment => attachment.risk === "high")
   );
   if (details.trustRestricted) {
     score = Math.max(score, 30);
   } else if (senderDomain) {
-    if (isTrusted(senderDomain, trustedDomains)) {
-      score -= 20;
+    const authFailed = auth.dmarc === "fail" || auth.spf === "fail" || auth.dkim === "fail";
+    const knownSender = knownSenders.some(sender =>
+      sender.toLowerCase() === fromParsed.email?.toLowerCase() ||
+      sender.toLowerCase() === senderDomain
+    );
+    if (!authFailed && isTrusted(senderDomain, [...companyDomains, ...trustedDomains])) {
       reasons.push("trusted_domain");
     }
-    if (knownSenders.includes(senderDomain)) {
-      score -= 10;
+    if (!authFailed && knownSender) {
       reasons.push("known_sender");
+    }
+    if (reasons.includes("trusted_domain") || reasons.includes("known_sender")) {
+      score -= Math.min(20, contentScore);
     }
   }
 

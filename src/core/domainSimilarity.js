@@ -83,7 +83,7 @@ function checkSimilarity(inputDomain, companyDomain) {
   const input = inputDomain.toLowerCase();
   const company = companyDomain.toLowerCase();
 
-  if (input === company) {
+  if (isCompanyDomainOrSubdomain(input, company)) {
     return { risk: "none", score: 0, reasons: [], inputDomain, matchedCompanyDomain: companyDomain };
   }
 
@@ -160,7 +160,7 @@ function checkSimilarity(inputDomain, companyDomain) {
     reasons.push("brand_substring_abuse"); score += 35;
   }
 
-  if (inputSLD === companySLD && input !== company) {
+  if (inputSLD === companySLD && input.split(".").pop() !== company.split(".").pop()) {
     reasons.push("tld_swap"); score += 10;
   }
 
